@@ -1,5 +1,5 @@
-#from bytetrack_ultralytics import run_tracking
-from botSORT_ultralytics import run_tracking
+from bytetrack_ultralytics import run_tracking
+#from botSORT_ultralytics import run_tracking
 import cv2
 
 def save_tracked_video(results, input_video_path, output_video_path):
