@@ -1,33 +1,40 @@
-from bytetrack_ultralytics import run_tracking
-#from botSORT_ultralytics import run_tracking
+from collections import defaultdict
 import cv2
-
-def save_tracked_video(results, input_video_path, output_video_path):
-    cap = cv2.VideoCapture(input_video_path)
-    ret, frame = cap.read()
-    frame_id = 0 
-    #fps = cap.get(cv2.CAP_PROP_FPS)     
-    width = frame.shape[1]
-    height = frame.shape[0]
-    print(frame.shape)
-    out = cv2.VideoWriter(str(output_video_path), cv2.VideoWriter_fourcc(*'DIVX'), 20.0, (width, height))
-
-  #if result is a list and contains elements
-    if isinstance(results, list) and len(results) > 0:
-        for result in results:
-            frame = result.imgs[0] if hasattr(result, 'imgs') else None 
-            
-            if frame is not None:
-                out.write(frame)
-                
-    else:
-        print("A 'results' object is not a list or empty.")
-
-    cap.release()
-    out.release()
+import numpy as np
+from pathlib import Path
+from ultralytics import YOLO
 
 video_path = 'park_people.mp4'
-output_video_path = 'tracked_park_people.avi'
+output_video_path = Path('/notebooks/Tracking_PN/videos/bytetrack_out.avi')
 
-results = run_tracking(video_path)
-save_tracked_video(results, video_path, output_video_path)
+
+
+def run_and_save_tracking(video_path, output_video_path, model_path='yolov8n.pt', tracker_config='bytetrack.yaml'):
+    model = YOLO(model_path)
+    cap = cv2.VideoCapture(video_path)
+    
+    track_history = defaultdict(lambda: [])
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    out = cv2.VideoWriter(str(output_video_path), cv2.VideoWriter_fourcc(*'DIVX'), 20.0, (width, height))
+    
+    while cap.isOpened():
+        success, frame = cap.read()
+        if not success:
+            break
+        
+        results = model.track(frame, show=False, tracker=tracker_config)
+        
+       # boxes = results[0].boxes.xywh.cpu()
+       # track_ids = results[0].boxes.id.int().cpu().tolist()
+        # annotációk: bounding boxok, azonosítók (ID-k), osztálynevek
+        annotated_frame = results[0].plot()
+        out.write(annotated_frame)
+        
+    
+    cap.release()
+    out.release()
+   # cv2.destroyAllWindows()
+
+
+run_and_save_tracking(video_path, output_video_path) 
